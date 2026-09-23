@@ -92,3 +92,28 @@ def test_base_mal_configurada_muestra_aviso_sin_la_clave(monkeypatch):
     assert not at.exception
     assert "No se pudo conectar" in at.error[0].value
     assert "clave-secreta" not in "".join(c.value for c in at.code)
+
+
+@pytest.fixture
+def base_vacia(tmp_path, monkeypatch):
+    """Como queda recién publicada: sin clientes, productos ni ventas; solo el primer usuario."""
+    url = os.environ.get("TEST_DATABASE_URL") or f"sqlite:///{tmp_path / 'vacia.db'}"
+    monkeypatch.setenv("DATABASE_URL", url)
+    engine = base_limpia(url)
+    from core import auth
+    with Session(engine) as s:
+        auth.crear_usuario(s, "Malena", "malena", "clave123")
+        s.commit()
+    yield engine
+    engine.dispose()
+
+
+@pytest.mark.parametrize("vista", VISTAS)
+def test_vista_con_base_vacia(base_vacia, vista):
+    at = _app(f"../vistas/{vista}.py").run()
+    assert not at.exception, at.exception
+
+
+def test_inicio_con_base_vacia(base_vacia):
+    at = _app("../app.py").run()
+    assert not at.exception, at.exception
