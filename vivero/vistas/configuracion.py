@@ -1,6 +1,6 @@
 import streamlit as st
 
-from core import auth, ui
+from core import auth, db, ui
 from core.models import Usuario
 from core.services import config, documentos
 
@@ -68,6 +68,12 @@ with t_usuarios:
                 ui.ejecutar(auth.cambiar_password, ui.uid(), nueva, ok="Contraseña cambiada")
 
 with t_backup:
+    if db.database_url().startswith("sqlite"):
+        st.warning("Base de datos **local**: los datos están solo en el archivo `vivero.db` de esta computadora.",
+                   icon="💻")
+    else:
+        st.success("Base de datos **en la nube** (Postgres): los datos quedan guardados aunque la app se reinicie.",
+                   icon="☁️")
     st.markdown("Descargá todos los datos en un Excel (una hoja por tabla). Conviene hacerlo una vez por semana.")
     if st.button("Preparar copia de seguridad", icon="🗄️"):
         with ui.sesion() as s:

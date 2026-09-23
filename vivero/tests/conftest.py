@@ -1,16 +1,30 @@
+import os
+
 import pytest
 from sqlalchemy.orm import Session
 
 from core.db import crear_engine, init_db
+from core.models import Base
 from core.services import catalogo, clientes
+
+# Por defecto SQLite en memoria. Para probar contra Postgres (como Neon):
+#   TEST_DATABASE_URL=postgresql://usuario@host:puerto/base python -m pytest vivero
+URL_PRUEBAS = os.environ.get("TEST_DATABASE_URL", "sqlite://")
+
+
+def base_limpia(url: str = URL_PRUEBAS):
+    engine = crear_engine(url)
+    Base.metadata.drop_all(engine)
+    init_db(engine)
+    return engine
 
 
 @pytest.fixture
 def s():
-    engine = crear_engine("sqlite://")
-    init_db(engine)
+    engine = base_limpia()
     with Session(engine) as sesion:
         yield sesion
+    engine.dispose()
 
 
 @pytest.fixture

@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from streamlit.testing.v1 import AppTest
 
-from core.db import crear_engine, init_db
+from conftest import base_limpia
 from core.models import Producto, Venta
 
 VISTAS = ["vender", "pedidos", "clientes", "stock", "recordatorios", "compras", "proveedores", "catalogo",
@@ -16,11 +16,10 @@ VISTAS = ["vender", "pedidos", "clientes", "stock", "recordatorios", "compras", 
 
 @pytest.fixture(scope="module")
 def base_demo(tmp_path_factory):
-    url = f"sqlite:///{tmp_path_factory.mktemp('db') / 'demo.db'}"
+    url = os.environ.get("TEST_DATABASE_URL") or f"sqlite:///{tmp_path_factory.mktemp('db') / 'demo.db'}"
     os.environ["DATABASE_URL"] = url
     import seed_demo
-    engine = crear_engine(url)
-    init_db(engine)
+    engine = base_limpia(url)
     with Session(engine) as s:
         seed_demo.cargar(s)
         s.commit()
@@ -73,3 +72,23 @@ def test_venta_de_punta_a_punta(base_demo):
     with Session(base_demo) as s:
         assert s.scalar(select(func.count(Venta.id))) == antes + 1
     assert at.session_state["ultima_venta"]
+
+
+def test_en_la_nube_sin_base_no_usa_sqlite(monkeypatch):
+    from core import db
+    monkeypatch.setattr(db, "en_streamlit_cloud", lambda: True)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    st.cache_resource.clear()
+    at = AppTest.from_file("../app.py", default_timeout=30).run()
+    assert not at.exception
+    assert "Falta conectar la base de datos" in at.error[0].value
+    assert not at.text_input  # no llega a la pantalla de ingreso
+
+
+def test_base_mal_configurada_muestra_aviso_sin_la_clave(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://vivero:clave-secreta@127.0.0.1:1/neondb")
+    st.cache_resource.clear()
+    at = AppTest.from_file("../app.py", default_timeout=30).run()
+    assert not at.exception
+    assert "No se pudo conectar" in at.error[0].value
+    assert "clave-secreta" not in "".join(c.value for c in at.code)

@@ -8,6 +8,11 @@ from core.services import config
 
 st.set_page_config(page_title="Vivero", page_icon="🌱", layout="wide")
 
+problema = ui.problema_base()
+if problema:
+    ui.pantalla_problema_base(*problema)
+    st.stop()
+
 
 def _entrar(u) -> None:
     st.session_state.usuario = {"id": u.id, "nombre": u.nombre}

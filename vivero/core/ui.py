@@ -5,8 +5,10 @@ from datetime import date, timedelta
 
 import pandas as pd
 import streamlit as st
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from . import db
 from .db import crear_engine, database_url, init_db
 from .tiempo import hoy
 
@@ -51,6 +53,38 @@ def ejecutar(funcion, *args, ok: str | None = None, recargar: bool = True, **kwa
     if recargar:
         st.rerun()
     return resultado
+
+
+def problema_base() -> tuple[str, str] | None:
+    """None si la base responde. Si no: ("falta", "") o ("error", detalle sin la contraseña)."""
+    if st.session_state.get("_base_ok"):
+        return None
+    if db.en_streamlit_cloud() and not db.url_configurada():
+        return "falta", ""  # en la nube, SQLite se borraría en cada reinicio
+    try:
+        with get_engine().connect() as conexion:
+            conexion.execute(text("SELECT 1"))
+    except Exception as e:
+        return "error", db.ocultar_clave(e)
+    st.session_state["_base_ok"] = True
+    return None
+
+
+def pantalla_problema_base(tipo: str, detalle: str) -> None:
+    st.title("🌱 Falta un paso")
+    pasos = ("En **share.streamlit.io**, en tu app tocá **⋮ → Settings → Secrets** y dejá esta línea, con la "
+             "dirección que te dio Neon (empieza con `postgresql://`) entre comillas:")
+    if tipo == "falta":
+        st.error("Falta conectar la base de datos. Sin eso, los datos se borrarían cada vez que la app se reinicia.")
+    else:
+        st.error("No se pudo conectar a la base de datos. Revisá que la dirección esté bien copiada, completa "
+                 "y sin espacios.")
+    st.markdown(pasos)
+    st.code('DATABASE_URL = "postgresql://usuario:clave@servidor/neondb?sslmode=require"', language="toml")
+    st.markdown("Después tocá **Save**: la app se reinicia sola en un minuto.")
+    if detalle:
+        with st.expander("Detalle técnico"):
+            st.code(detalle, language=None)
 
 
 @st.cache_data(ttl=300, show_spinner=False)

@@ -29,16 +29,20 @@ Sin configurar nada, los datos se guardan en `vivero/vivero.db` (SQLite). Con lo
 
 ## Ponerlo en internet (gratis) para usarlo desde la PC y el celular
 
-1. **Base de datos**: creá una cuenta en [neon.tech](https://neon.tech) y un proyecto nuevo (región: us-east). Copiá la *connection string* (`postgresql://usuario:clave@host/neondb?sslmode=require`).
-   *(También sirve Supabase: usá la URL del "Session pooler").*
-2. **App**: en [share.streamlit.io](https://share.streamlit.io), elegí *Create app* → este repositorio, la rama y **Main file path: `vivero/app.py`**. En *Advanced settings*, elegí Python 3.12 y en **Secrets** pegá:
+1. **Base de datos**: creá una cuenta en [neon.tech](https://neon.tech) y un proyecto en una región de Estados Unidos (por ejemplo AWS US East). En el proyecto tocá **Connect** y copiá la dirección que empieza con `postgresql://`. No la compartas: es la llave de tus datos.
+2. **App**: entrá a [share.streamlit.io](https://share.streamlit.io) con GitHub y tocá **Create app** → *Deploy a public app from GitHub*. Elegí **Paste GitHub URL** y pegá:
+   `https://github.com/luchocordoba3/finanzas.beta/blob/main/vivero/app.py`
+   En **App URL** elegí el nombre de la dirección. En **Advanced settings → Secrets** pegá (la versión de Python dejala como viene):
    ```toml
-   DATABASE_URL = "postgresql://usuario:clave@host/neondb?sslmode=require"
+   DATABASE_URL = "postgresql://usuario:clave@servidor/neondb?sslmode=require"
    ```
-3. Abrí la app, creá tu usuario y, en **Configuración → Usuarios**, el de tu socio/a.
-4. En el celular: abrí el link y usá "Agregar a pantalla de inicio".
+   **Save** y después **Deploy**.
+3. Abrí la app, creá tu usuario y, en **Configuración → Usuarios**, el de tu socio/a. En **Configuración → Copia de seguridad** tiene que decir "Base de datos en la nube".
+4. En el celular: abrí la dirección y usá "Agregar a pantalla de inicio".
 
-Las tablas se crean solas la primera vez. **No** corras `seed_demo.py` contra la base de producción.
+- Las tablas se crean solas. Si falta `DATABASE_URL` o está mal copiada, la app no arranca y muestra cómo arreglarlo. En la nube nunca usa el archivo local, porque ahí se borraría.
+- Si la página de Streamlit muestra "Oops, something went wrong", desactivá el traductor automático de Chrome para ese sitio y recargá.
+- **No** corras `seed_demo.py` contra la base de producción.
 
 ## Primeros pasos recomendados
 
