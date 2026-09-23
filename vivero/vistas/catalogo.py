@@ -93,7 +93,7 @@ with t_prod:
             margen = p["margen_objetivo"] if pd.notna(p["margen_objetivo"]) else 0
             if p["costo_promedio"] > 0:
                 st.caption(f"Precio sugerido con el margen de la categoría ({margen:g}%): "
-                           f"{ui.pesos(catalogo.precio_sugerido(p['costo_promedio'], margen))}")
+                           f"{ui.pesos_md(catalogo.precio_sugerido(p['costo_promedio'], margen))}")
             if st.form_submit_button("Guardar cambios", type="primary", icon="💾"):
                 ui.ejecutar(catalogo.actualizar_producto, pid, datos, ok="Producto actualizado")
 

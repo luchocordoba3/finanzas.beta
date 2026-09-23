@@ -42,7 +42,7 @@ with tab_abiertos:
                          f":{color}[Entrega {ui.fecha(p['fecha_entrega'])} ({ui.cuando(p['fecha_entrega'])})] · {envio}"
                          + (f" · 📞 {p['telefono']}" if p["telefono"] else ""))
             izq.caption(p["detalle"] + (f" — {p['notas']}" if p["notas"] else ""))
-            der.markdown(f"Total **{ui.pesos(p['total'])}**  \nSeña {ui.pesos(p['sena'])} · resta {ui.pesos(p['total'] - p['sena'])}")
+            der.markdown(f"Total **{ui.pesos_md(p['total'])}**  \nSeña {ui.pesos_md(p['sena'])} · resta {ui.pesos_md(p['total'] - p['sena'])}")
             sin_encargar = falta_p[~falta_p["encargado"].astype(bool)]
             if not falta_p.empty:
                 txt = ", ".join(f"{f['falta']:g}× {f['descripcion']}" + (" (encargado)" if f["encargado"] else "")
@@ -91,7 +91,7 @@ with tab_nuevo:
     items = ui.editor_items("pedido_items", productos)
     notas = st.text_area("Notas", key="pedido_notas", height=70)
     total = sum(i["cantidad"] * i["precio"] for i in items)
-    st.markdown(f"Total del pedido: **{ui.pesos(total)}** · resta cobrar {ui.pesos(total - sena)}")
+    st.markdown(f"Total del pedido: **{ui.pesos_md(total)}** · resta cobrar {ui.pesos_md(total - sena)}")
     if st.button("Guardar pedido", type="primary", icon="💾", disabled=not items):
         ped = ui.ejecutar(pedidos.crear_pedido, cliente_id, fecha_entrega, items, ui.uid(), entrega or "Retira",
                           direccion, sena, notas, recargar=False)

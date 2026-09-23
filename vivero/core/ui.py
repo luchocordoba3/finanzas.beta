@@ -90,6 +90,11 @@ def pesos(valor, decimales: int | None = None) -> str:
     return f"{'-' if v < 0 else ''}$ {txt}"
 
 
+def pesos_md(valor, decimales: int | None = None) -> str:
+    """Igual que `pesos` pero para textos con markdown (ahí el signo $ abre una fórmula)."""
+    return pesos(valor, decimales).replace("$", "\\$")
+
+
 def cant(valor) -> str:
     v = float(valor or 0)
     return f"{v:,.0f}".replace(",", ".") if v.is_integer() else f"{v:.2f}".rstrip("0").replace(".", ",")
@@ -229,7 +234,7 @@ def editor_items(key: str, productos: pd.DataFrame, precio: str = "precio", etiq
         if it["stock"] is not None and it["cantidad"] > it["stock"]:
             aviso = f" :orange[(hay {cant(max(it['stock'], 0))})]"
         c[0].markdown(f"**{it['descripcion']}**{aviso}")
-        c[3].markdown(pesos(it["cantidad"] * it["precio"]))
+        c[3].markdown(pesos_md(it["cantidad"] * it["precio"]))
         if c[4].button("✕", key=f"{key}_x_{it['uid']}", help="Quitar"):
             items.remove(it)
             st.rerun()
@@ -254,7 +259,7 @@ def banner_ultima_venta() -> None:
         v = ventas.detalle(s, venta_id)
         pdf, total = documentos.comprobante_venta(v, config.todos(s)), v.total
     c = st.columns([4, 1.6, 0.8], vertical_alignment="center")
-    c[0].success(f"Venta #{venta_id} registrada por {pesos(total)}.")
+    c[0].success(f"Venta #{venta_id} registrada por {pesos_md(total)}.")
     c[1].download_button("Comprobante PDF", pdf, f"comprobante_{venta_id}.pdf", "application/pdf", icon="🧾",
                          width="stretch")
     if c[2].button("Cerrar", key="cerrar_banner", width="stretch"):

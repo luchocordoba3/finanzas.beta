@@ -17,15 +17,17 @@ with ui.sesion() as s:
     prod = estadisticas.produccion(s) if config.produccion_activa(s) else None
 
 it = it[it["producto_id"].notna()]  # solo lo que está en el catálogo (sin servicios)
+if not st.toggle("Incluir insumos y accesorios (tierra, macetas…)", key="est_insumos"):
+    it = it[it["tipo_categoria"] != "insumo"]
 valor = estadisticas.valor_stock(productos)
 costo_vendido = it["costo"].sum()
 m = st.columns(4)
 m[0].metric("Unidades vendidas", ui.cant(it["cantidad"].sum()), border=True)
-m[1].metric("Stock valorizado a costo", ui.pesos(valor["costo"]), f"{ui.pesos(valor['venta'])} a precio de venta",
+m[1].metric("Stock valorizado a costo", ui.pesos(valor["costo"], 0), f"{ui.pesos(valor['venta'], 0)} a precio de venta",
             delta_color="off", delta_arrow="off", border=True)
-m[2].metric("Pérdidas del período", ui.pesos(perdidas["valor"].sum()), f"{ui.cant(perdidas['unidades'].sum())} unidades",
+m[2].metric("Pérdidas del período", ui.pesos(perdidas["valor"].sum(), 0), f"{ui.cant(perdidas['unidades'].sum())} unidades",
             delta_color="off", delta_arrow="off", border=True)
-m[3].metric("Pérdidas sobre lo vendido", f"{perdidas['valor'].sum() / costo_vendido * 100:.1f}%" if costo_vendido else "—",
+m[3].metric("Pérdidas sobre lo vendido", f"{perdidas['valor'].sum() / costo_vendido * 100:.1f}%".replace(".", ",") if costo_vendido else "—",
             help="Costo de lo que se perdió dividido el costo de lo que se vendió.", border=True)
 
 pestanias = ["Más vendidas", "Rotación y stock parado", "Pérdidas", "Temporadas"] + (["Producción propia"] if prod is not None else [])
@@ -47,7 +49,7 @@ with tabs[0]:
 with tabs[1]:
     parado = rot[rot["dias_sin_venta"].isna() | (rot["dias_sin_venta"] >= dias_sin_venta)].sort_values("valor_costo", ascending=False)
     st.markdown(f"**Stock parado**: sin ventas en {dias_sin_venta} días o más · {len(parado)} productos · "
-                f"{ui.pesos(parado['valor_costo'].sum())} inmovilizados a costo")
+                f"{ui.pesos_md(parado['valor_costo'].sum())} inmovilizados a costo")
     st.dataframe(parado[["producto", "categoria", "stock", "valor_costo", "ultima_venta", "dias_sin_venta"]], hide_index=True,
                  column_config={"producto": "Producto", "categoria": "Categoría", "stock": ui.col_cant("Stock"),
                                 "valor_costo": ui.col_pesos("Valor a costo ($)"), "ultima_venta": ui.col_fecha("Última venta"),

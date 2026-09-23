@@ -26,7 +26,7 @@ subtotal = sum(i["cantidad"] * i["precio"] for i in items)
 izq, der = st.columns(2, gap="large")
 with izq:
     cliente_id = ui.selector_cliente(df_clientes, "venta_cliente")
-    medio = st.pills("Medio de pago", medios, default=medios[0] if medios else None, key="venta_medio")
+    medio = st.radio("Medio de pago", medios, horizontal=True, key="venta_medio")
     notas = st.text_input("Notas (opcional)", key="venta_notas")
 with der:
     tipo = st.segmented_control("Descuento en", ["%", "$"], default="%", key="venta_tipo_desc")
@@ -36,7 +36,7 @@ with der:
               f"{ui.pesos(descuento)} de descuento" if descuento else None, delta_color="off", delta_arrow="off")
     if medio == CUENTA_CORRIENTE and cliente_id:
         with ui.sesion() as s:
-            st.caption(f"Saldo actual de la cuenta: {ui.pesos(clientes.saldo(s, cliente_id))}")
+            st.caption(f"Saldo actual de la cuenta: {ui.pesos_md(clientes.saldo(s, cliente_id))}")
     if st.button("Confirmar venta", type="primary", icon="✅", width="stretch"):
         v = ui.ejecutar(ventas.crear_venta, items, medio, ui.uid(), cliente_id, descuento, notas, recargar=False)
         if v:

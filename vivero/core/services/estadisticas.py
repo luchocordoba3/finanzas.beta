@@ -41,7 +41,7 @@ def items_df(s, desde: date, hasta: date) -> pd.DataFrame:
     df = df_query(s, select(VentaItem.venta_id, Venta.fecha, VentaItem.producto_id, VentaItem.descripcion,
                             VentaItem.cantidad, VentaItem.precio_unitario, VentaItem.costo_unitario, Venta.subtotal,
                             Venta.total, Producto.nombre, Producto.presentacion, Planta.nombre_comun.label("planta"),
-                            Categoria.nombre.label("categoria"))
+                            Categoria.nombre.label("categoria"), Categoria.tipo.label("tipo_categoria"))
                   .join(Venta, Venta.id == VentaItem.venta_id)
                   .outerjoin(Producto, Producto.id == VentaItem.producto_id)
                   .outerjoin(Planta, Planta.id == Producto.planta_id)

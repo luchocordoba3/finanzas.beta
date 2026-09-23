@@ -70,7 +70,7 @@ with t_listas:
         cid = c["id"]
         items = it_listas[it_listas["compra_id"] == cid]
         with st.container(border=True):
-            st.markdown(f"**{c['proveedor']}** · {len(items)} productos · estimado {ui.pesos(c['total'])}")
+            st.markdown(f"**{c['proveedor']}** · {len(items)} productos · estimado {ui.pesos_md(c['total'])}")
             editado = st.data_editor(
                 items[["id", "producto", "cantidad", "costo_unitario"]].assign(quitar=False), key=f"ed_{cid}",
                 hide_index=True, disabled=["id", "producto"],
@@ -157,7 +157,7 @@ with t_directa:
     llega = c[1].date_input("Llega el", hoy() + timedelta(days=3), format="DD/MM/YYYY", key="cd_llega", disabled=recibida)
     venc = c[2].date_input("Vence el pago (opcional)", value=None, format="DD/MM/YYYY", key="cd_venc")
     notas = st.text_input("Notas", key="cd_notas")
-    st.markdown(f"Total: **{ui.pesos(sum(i['cantidad'] * i['precio'] for i in items))}**")
+    st.markdown(f"Total: **{ui.pesos_md(sum(i['cantidad'] * i['precio'] for i in items))}**")
     if st.button("Guardar compra", type="primary", icon="💾", disabled=not items):
         compra = ui.ejecutar(compras.crear_compra, prov, items, ui.uid(), None if recibida else llega, venc, notas,
                              recibida, recargar=False)

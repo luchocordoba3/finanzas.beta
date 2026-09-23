@@ -25,10 +25,10 @@ def variacion(actual: float, anterior: float) -> str | None:
 
 
 m = st.columns(4)
-m[0].metric("Facturación", ui.pesos(k["facturacion"]), variacion(k["facturacion"], ka["facturacion"]), border=True)
+m[0].metric("Facturación", ui.pesos(k["facturacion"], 0), variacion(k["facturacion"], ka["facturacion"]), border=True)
 m[1].metric("Cantidad de ventas", k["ventas"], variacion(k["ventas"], ka["ventas"]), border=True)
-m[2].metric("Ticket promedio", ui.pesos(k["ticket"]), variacion(k["ticket"], ka["ticket"]), border=True)
-m[3].metric("Margen bruto", ui.pesos(k["margen"]), f"{k['margen_pct']:.0f}% de lo facturado", delta_color="off",
+m[2].metric("Ticket promedio", ui.pesos(k["ticket"], 0), variacion(k["ticket"], ka["ticket"]), border=True)
+m[3].metric("Margen bruto", ui.pesos(k["margen"], 0), f"{k['margen_pct']:.0f}% de lo facturado", delta_color="off",
             delta_arrow="off", border=True)
 st.caption(f"Período anterior para comparar: del {ui.fecha(ant_desde)} al {ui.fecha(ant_hasta)}. "
            "El margen usa el costo promedio de cada producto al momento de venderlo.")

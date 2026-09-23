@@ -44,7 +44,7 @@ for grupo, items in grupos.items():
     with st.expander(f"{ICONOS.get(grupo, '•')} **{grupo}** ({len(items)})", expanded=abierto):
         for i, a in enumerate(items):
             col_txt, col_accion = st.columns([8, 2], vertical_alignment="center")
-            col_txt.markdown(f"{NIVEL[a.nivel]} {a.texto}")
+            col_txt.markdown(f"{NIVEL[a.nivel]} {a.texto}".replace("$", "\\$"))
             if grupo == "Recordatorios":
                 if col_accion.button("Hecho", key=f"rec_{a.ref_id}", icon="✔️", width="stretch"):
                     ui.ejecutar(recordatorios.completar, a.ref_id, ok="Recordatorio completado")

@@ -78,7 +78,7 @@ pagina = st.navigation({
         st.Page("vistas/recordatorios.py", title="Recordatorios", icon="⏰"),
     ],
     "Administración": administracion,
-})
+}, expanded=True)
 
 with st.sidebar:
     st.caption(f"🌱 {cfg['nombre_vivero']} · sesión de **{usuario['nombre']}**")

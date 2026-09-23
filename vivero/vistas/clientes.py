@@ -98,7 +98,7 @@ with tab_lista:
         vista = vista[vista["tipo"] == tipo]
     if con_deuda:
         vista = vista[vista["saldo"] > 0]
-    st.caption(f"{len(vista)} clientes · deuda total {ui.pesos(vista['saldo'].clip(lower=0).sum())}")
+    st.caption(f"{len(vista)} clientes · deuda total {ui.pesos_md(vista['saldo'].clip(lower=0).sum())}")
     ev = st.dataframe(vista[["nombre", "telefono", "tipo", "localidad", "compras", "total_comprado", "ultima_compra", "saldo"]],
                       hide_index=True, on_select="rerun", selection_mode="single-row", key="tabla_clientes",
                       column_config={"nombre": "Nombre", "telefono": "Teléfono", "tipo": "Tipo", "localidad": "Localidad",
