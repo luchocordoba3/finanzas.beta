@@ -17,6 +17,8 @@ with ui.sesion() as s:
                            columns=["id", "nombre_comun", "nombre_cientifico", "categoria_id", "ambiente", "cuidados", "activo"])
     provs = {p.id: p.nombre for p in proveedores.listar(s)}
 
+cats["activo"] = cats["activo"].astype(bool)
+plantas["activo"] = plantas["activo"].astype(bool)
 cat_nombre = dict(zip(cats["id"], cats["nombre"]))
 cat_tipo = dict(zip(cats["id"], cats["tipo"]))
 cat_activas = cats.loc[cats["activo"], "id"].tolist()
