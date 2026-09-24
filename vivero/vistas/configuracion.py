@@ -88,13 +88,8 @@ with t_notif:
     st.caption("Tienen notificaciones: " + (", ".join(f"{n} ({con_push[i]})" for i, n, _, _ in usuarios if i in con_push)
                                             or "nadie todavía"))
 
-    st.markdown("#### ⏰ Resumen de las 8 de la mañana")
-    st.markdown("Lo manda GitHub todos los días, aunque nadie abra el sistema. Necesita, una sola vez, la dirección de "
-                "la base:\n\n"
-                "1. Entrá a [este link de tu repositorio](https://github.com/luchocordoba3/finanzas.beta/settings/secrets/actions/new).\n"
-                "2. En **Name** poné `DATABASE_URL`.\n"
-                "3. En **Secret** pegá la dirección de Neon (la que empieza con `postgresql://`, sin comillas).\n"
-                "4. Tocá **Add secret**.")
+    if cfg.get("ultimo_resumen"):
+        st.caption(f"⏰ Último resumen de la mañana enviado: {cfg['ultimo_resumen']}")
 
     with st.expander("📨 Telegram (opcional, para quien lo use)"):
         if bot:

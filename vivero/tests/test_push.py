@@ -126,3 +126,15 @@ def test_backup_no_incluye_la_clave_de_notificaciones(s):
     s.flush()
     hojas = pd.read_excel(io.BytesIO(documentos.backup_excel(s)), sheet_name=None)
     assert "PRIVATE KEY" not in hojas["config"].to_string()
+
+
+def test_resumen_diario_deja_registro(tmp_path, monkeypatch):
+    from sqlalchemy.orm import Session
+    from conftest import base_limpia
+    import resumen_diario
+    url = f"sqlite:///{tmp_path / 'resumen.db'}"
+    engine = base_limpia(url)
+    monkeypatch.setenv("DATABASE_URL", url)
+    resumen_diario.main()
+    with Session(engine) as s:
+        assert "(0 avisos)" in config.obtener(s, "ultimo_resumen")

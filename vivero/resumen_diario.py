@@ -10,7 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sqlalchemy.orm import Session  # noqa: E402
 
 from core.db import crear_engine  # noqa: E402
-from core.services import notificaciones  # noqa: E402
+from core.services import config, notificaciones  # noqa: E402
+from core.tiempo import ahora  # noqa: E402
 
 
 def main() -> None:
@@ -20,7 +21,8 @@ def main() -> None:
         return
     with Session(crear_engine(url)) as s:
         enviados = notificaciones.enviar_resumen_diario(s)
-        s.commit()  # dispositivos dados de baja
+        config.guardar(s, {"ultimo_resumen": f"{ahora():%d/%m/%Y %H:%M} ({enviados} avisos)"})
+        s.commit()  # también guarda los dispositivos dados de baja
         print(f"Resúmenes enviados: {enviados}")
 
 
