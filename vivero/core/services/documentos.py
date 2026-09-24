@@ -74,5 +74,7 @@ def backup_excel(s) -> bytes:
         for tabla in Base.metadata.sorted_tables:
             df = df_query(s, select(tabla))
             df = df.drop(columns=["password_hash"], errors="ignore")
+            if tabla.name == "config":  # el token del bot de Telegram es una clave: no va en la copia
+                df = df[df["clave"] != "telegram_token"]
             df.to_excel(xw, sheet_name=tabla.name[:31], index=False)
     return buf.getvalue()

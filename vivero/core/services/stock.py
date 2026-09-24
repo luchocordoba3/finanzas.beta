@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from ..constantes import PEDIDO_ABIERTO
 from ..models import Categoria, MovimientoStock, Pedido, PedidoItem, Producto, Proveedor, Usuario
 from ..tiempo import ahora
+from . import avisos
 from .util import df_query, nombre_producto
 
 ENTRADAS_CON_COSTO = {"inicial", "compra", "produccion"}  # recalculan el costo promedio
@@ -27,7 +28,12 @@ def mover(s, producto_id: int, cantidad: float, tipo: str, usuario_id: int | Non
         p.costo_promedio = round((base * p.costo_promedio + cantidad * costo_unitario) / (base + cantidad), 2)
         p.costo_ultimo = costo_unitario
     costo = p.costo_promedio if costo_unitario is None else costo_unitario
-    p.stock = round(p.stock + cantidad, 2)
+    antes, p.stock = p.stock, round(p.stock + cantidad, 2)
+    if cantidad < 0 and antes > 0 >= p.stock:
+        avisos.encolar(s, f"⚠️ Se agotó <b>{avisos.e(p.nombre_completo)}</b>. Sumalo a la lista de compras.")
+    elif cantidad < 0 and p.stock_minimo > 0 and antes > p.stock_minimo >= p.stock:
+        avisos.encolar(s, f"📉 <b>{avisos.e(p.nombre_completo)}</b>: quedan {p.stock:g} (mínimo {p.stock_minimo:g}). "
+                          "Sumalo a la lista de compras.")
     m = MovimientoStock(producto_id=p.id, fecha=fecha or ahora(), tipo=tipo, cantidad=cantidad, costo_unitario=costo,
                         motivo=motivo, ref_tipo=ref_tipo, ref_id=ref_id, usuario_id=usuario_id, notas=notas)
     s.add(m)

@@ -19,5 +19,13 @@ def df_query(s, q) -> pd.DataFrame:
     return df
 
 
+def pesos(valor, decimales: int | None = None) -> str:
+    v = float(valor or 0)
+    if decimales is None:
+        decimales = 0 if abs(v - round(v)) < 0.005 else 2
+    txt = f"{abs(v):,.{decimales}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{'-' if v < 0 else ''}$ {txt}"
+
+
 def nombre_producto(nombre: str, presentacion: str | None) -> str:
     return f"{nombre} · {presentacion}" if presentacion else nombre

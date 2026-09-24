@@ -52,6 +52,18 @@ Sin configurar nada, los datos se guardan en `vivero/vivero.db` (SQLite). Con lo
 4. **Proveedores**: completá teléfono, días de entrega y condiciones de pago.
 5. Una vez por semana, **Configuración → Copia de seguridad**.
 
+## Avisos por Telegram
+
+Te llegan al celular el **resumen del día a las 8** (pedidos para entregar, pagos que vencen, stock bajo, recordatorios…) y **avisos en el momento**: pedido nuevo, encargo que llegó, producto que se agota y recordatorio que te dejó tu socio.
+
+1. **El bot** (una vez): en Telegram, **@BotFather** → `/newbot` → nombre → usuario terminado en `bot`. Te da un **token**: pegalo en **Configuración → Avisos por Telegram**.
+2. **Cada socio**, con su usuario: en esa misma pantalla, **Abrir el bot en Telegram** → **Iniciar** → volver y tocar **Ya toqué Iniciar**.
+3. **Resumen de las 8** (una vez): en GitHub, *Settings → Secrets and variables → Actions → New repository secret*, con nombre `DATABASE_URL` y la misma dirección de Neon. Lo manda `.github/workflows/vivero-resumen-diario.yml` (se puede correr a mano desde la pestaña *Actions*).
+
+## WhatsApp a clientes
+
+Botones que abren WhatsApp con el mensaje ya escrito (vos solo tocás enviar, sin costo): en **Pedidos** (pedido listo, recordar la entrega, llegó el encargo), en **Inicio** (encargos que llegaron, clientes que deben) y en la **ficha del cliente**. Los teléfonos pueden estar cargados como sea (`11 5555-1234`, `011 15…`, `+54 9…`); los que no tienen código de área usan el de **Configuración → Avisos y opciones**.
+
 ## A tener en cuenta
 
 - Si recargás la página, hay que volver a ingresar.

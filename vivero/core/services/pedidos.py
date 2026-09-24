@@ -7,7 +7,7 @@ from sqlalchemy import case, select
 from ..constantes import PEDIDO_ABIERTO
 from ..models import Cliente, Compra, CompraItem, Pedido, PedidoItem, Producto
 from ..tiempo import hoy
-from . import compras, ventas
+from . import avisos, compras, ventas
 from .util import df_query
 
 
@@ -33,6 +33,9 @@ def crear_pedido(s, cliente_id: int, fecha_entrega: date, items: list[dict], usu
         raise ValueError("La seña no puede superar el total del pedido.")
     s.add(p)
     s.flush()
+    detalle = ", ".join(f"{i.cantidad:g}× {i.descripcion}" for i in p.items)
+    avisos.encolar(s, f"📦 Pedido nuevo #{p.id} de <b>{avisos.e(s.get(Cliente, cliente_id).nombre)}</b> para el "
+                      f"{fecha_entrega:%d/%m}: {avisos.e(detalle)}", excepto=usuario_id)
     return p
 
 
@@ -74,7 +77,8 @@ def encargar_item(s, pedido_item_id: int, usuario_id: int | None = None, product
 
 def tabla(s, estados: tuple[str, ...] | None = None, desde: date | None = None, hasta: date | None = None,
           cliente_id: int | None = None) -> pd.DataFrame:
-    q = (select(Pedido.id, Pedido.cliente_id, Cliente.nombre.label("cliente"), Cliente.telefono, Pedido.creado_en,
+    q = (select(Pedido.id, Pedido.cliente_id, Cliente.nombre.label("cliente"), Cliente.telefono,
+                Cliente.tipo.label("tipo_cliente"), Pedido.creado_en,
                 Pedido.fecha_entrega, Pedido.estado, Pedido.entrega, Pedido.direccion, Pedido.sena, Pedido.notas)
          .join(Cliente, Cliente.id == Pedido.cliente_id).order_by(Pedido.fecha_entrega, Pedido.id))
     if estados:
@@ -131,7 +135,7 @@ def faltantes(s) -> pd.DataFrame:
 def encargos_recibidos(s) -> pd.DataFrame:
     """Pedidos pendientes cuya mercadería encargada ya llegó: hay que avisarle al cliente."""
     return df_query(s, select(Pedido.id.label("pedido_id"), Cliente.nombre.label("cliente"), Cliente.telefono,
-                              PedidoItem.descripcion, Pedido.fecha_entrega)
+                              Cliente.tipo.label("tipo_cliente"), PedidoItem.descripcion, Pedido.fecha_entrega)
                     .join(PedidoItem, PedidoItem.pedido_id == Pedido.id)
                     .join(CompraItem, CompraItem.pedido_item_id == PedidoItem.id)
                     .join(Cliente, Cliente.id == Pedido.cliente_id)

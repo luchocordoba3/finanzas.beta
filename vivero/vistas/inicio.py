@@ -1,13 +1,10 @@
 import streamlit as st
 
 from core import ui
-from core.services import alertas, compras, estadisticas, pedidos, recordatorios, stock
+from core.services import alertas, clientes, compras, config, estadisticas, pedidos, recordatorios, stock, whatsapp
 from core.tiempo import hoy
 
-ICONOS = {"Pedidos atrasados": "🔴", "Pedidos para entregar": "📦", "Faltantes para pedidos": "🧩",
-          "Encargos que llegaron": "📬", "Stock bajo mínimo": "📉", "Compras por recibir": "🚚",
-          "Pagos a proveedores": "💸", "Cuentas corrientes": "💳", "Recordatorios": "⏰", "Producción": "🌾",
-          "Temporada": "🌸"}
+ICONOS = alertas.ICONOS
 PAGINAS = {"pedidos": "vistas/pedidos.py", "compras": "vistas/compras.py", "stock": "vistas/stock.py",
            "clientes": "vistas/clientes.py", "recordatorios": "vistas/recordatorios.py",
            "produccion": "vistas/produccion.py"}
@@ -24,6 +21,15 @@ with ui.sesion() as s:
     en_curso = compras.productos_en_curso(s)
     reponer = stock.a_reponer(stock.tabla_productos(s))
     reponer = reponer[~reponer["id"].isin(en_curso)]
+    cfg = config.todos(s)
+    encargos = pedidos.encargos_recibidos(s)
+    deudores = clientes.deudores(s)
+
+
+def boton_whatsapp(donde, telefono: str, texto: str, key: str) -> None:
+    url = whatsapp.link(telefono, texto, cfg["codigo_area"])
+    if url:
+        donde.link_button("WhatsApp", url, icon="💬", width="stretch", key=key)
 
 c = st.columns(4)
 c[0].metric("Ventas de hoy", ui.pesos(ventas_hoy["total"].sum()), f"{len(ventas_hoy)} ventas", delta_color="off",
@@ -43,15 +49,28 @@ for grupo, items in grupos.items():
     abierto = any(a.nivel != "info" for a in items)
     with st.expander(f"{ICONOS.get(grupo, '•')} **{grupo}** ({len(items)})", expanded=abierto):
         for i, a in enumerate(items):
-            col_txt, col_accion = st.columns([8, 2], vertical_alignment="center")
+            col_txt, col_wa, col_accion = st.columns([7, 1.7, 1.7], vertical_alignment="center")
             col_txt.markdown(f"{NIVEL[a.nivel]} {a.texto}".replace("$", "\\$"))
             if grupo == "Recordatorios":
                 if col_accion.button("Hecho", key=f"rec_{a.ref_id}", icon="✔️", width="stretch"):
                     ui.ejecutar(recordatorios.completar, a.ref_id, ok="Recordatorio completado")
             elif grupo == "Encargos que llegaron":
+                filas = encargos[encargos["pedido_id"] == a.ref_id]
+                if not filas.empty:
+                    f = filas.iloc[0]
+                    texto = whatsapp.mensaje("encargo", whatsapp.saludo(f["cliente"], f["tipo_cliente"]),
+                                             cfg["nombre_vivero"], {"detalle": ", ".join(filas["descripcion"])})
+                    boton_whatsapp(col_wa, f["telefono"], texto, f"wa_enc_{a.ref_id}")
                 if col_accion.button("Ya le avisé", key=f"enc_{a.ref_id}", width="stretch"):
                     ui.ejecutar(pedidos.cambiar_estado, a.ref_id, "listo", ok=f"Pedido #{a.ref_id} listo para entregar")
             elif grupo != "Stock bajo mínimo":
+                if grupo == "Cuentas corrientes":
+                    filas = deudores[deudores["cliente_id"] == a.ref_id]
+                    if not filas.empty:
+                        f = filas.iloc[0]
+                        texto = whatsapp.mensaje("saldo", whatsapp.saludo(f["cliente"], f["tipo"]), cfg["nombre_vivero"],
+                                                 saldo=f["saldo"])
+                        boton_whatsapp(col_wa, f["telefono"], texto, f"wa_cc_{a.ref_id}")
                 col_accion.page_link(PAGINAS[a.pagina], label="Ir", icon="➡️", width="stretch")
         if grupo == "Stock bajo mínimo" and not reponer.empty:
             def _agregar(s, filas, usuario_id):

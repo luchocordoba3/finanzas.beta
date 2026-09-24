@@ -1,6 +1,8 @@
 """Ayudas de interfaz compartidas por todas las pantallas."""
+import threading
 import uuid
 from contextlib import contextmanager
+from urllib.parse import urlsplit
 from datetime import date, timedelta
 
 import pandas as pd
@@ -10,9 +12,9 @@ from sqlalchemy.orm import Session
 
 from . import db
 from .db import crear_engine, database_url, init_db
-from .tiempo import hoy
-
-DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+from .services import avisos
+from .services.util import pesos  # noqa: F401  (las vistas lo usan como ui.pesos)
+from .tiempo import DIAS, hoy
 
 
 # ---- Base de datos ---------------------------------------------------------------------------
@@ -44,15 +46,41 @@ def ejecutar(funcion, *args, ok: str | None = None, recargar: bool = True, **kwa
     try:
         with sesion() as s:
             resultado = funcion(s, *args, **kwargs)
+            pendientes = avisos.pendientes(s)
     except ValueError as e:
         st.error(str(e), icon="⚠️")
         return None
+    if pendientes:
+        mandar_avisos(pendientes)
     contar_alertas.clear()
     if ok:
         flash(ok)
     if recargar:
         st.rerun()
     return resultado
+
+
+def mandar_avisos(pendientes: list[dict]) -> None:
+    """Manda los avisos por Telegram en segundo plano, para no demorar la pantalla."""
+    from .services import notificaciones
+    engine = get_engine()
+
+    def tarea():
+        try:
+            with Session(engine) as s:
+                notificaciones.enviar_avisos(s, pendientes)
+        except Exception:  # un aviso que no sale nunca frena el trabajo
+            pass
+
+    threading.Thread(target=tarea, daemon=True).start()
+
+
+def url_app() -> str:
+    try:
+        partes = urlsplit(st.context.url)
+        return f"{partes.scheme}://{partes.netloc}"
+    except Exception:
+        return ""
 
 
 def problema_base() -> tuple[str, str] | None:
@@ -115,14 +143,6 @@ def mostrar_flash() -> None:
 
 
 # ---- Formatos --------------------------------------------------------------------------------
-
-def pesos(valor, decimales: int | None = None) -> str:
-    v = float(valor or 0)
-    if decimales is None:
-        decimales = 0 if abs(v - round(v)) < 0.005 else 2
-    txt = f"{abs(v):,.{decimales}f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"{'-' if v < 0 else ''}$ {txt}"
-
 
 def pesos_md(valor, decimales: int | None = None) -> str:
     """Igual que `pesos` pero para textos con markdown (ahí el signo $ abre una fórmula)."""
