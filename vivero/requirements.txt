@@ -7,3 +7,4 @@ openpyxl
 fpdf2
 tzdata
 requests
+cryptography

@@ -258,6 +258,18 @@ class Recordatorio(Base):
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=ahora)
 
 
+class Dispositivo(Base):
+    """Celular o computadora con las notificaciones del vivero activadas (Web Push)."""
+    __tablename__ = "dispositivos"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), index=True)
+    endpoint: Mapped[str] = mapped_column(Text, unique=True)
+    p256dh: Mapped[str] = mapped_column(String(200))
+    auth: Mapped[str] = mapped_column(String(100))
+    nombre: Mapped[str] = _texto(80)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=ahora)
+
+
 class Lote(Base):
     """Lote de producción propia (semillas, esquejes…) hasta que pasa a stock."""
     __tablename__ = "lotes"

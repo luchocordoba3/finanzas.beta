@@ -11,6 +11,7 @@ DEFAULTS = {
     "dias_sin_venta": "60",
     "modulo_produccion": "0",
     "codigo_area": "11",
+    "url_avisos": "https://luchocordoba3.github.io/finanzas.beta/avisos/",
     "medios_pago": "Efectivo, Transferencia, Mercado Pago, Débito, Crédito, Cuenta corriente",
 }
 

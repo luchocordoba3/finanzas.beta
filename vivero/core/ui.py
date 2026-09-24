@@ -60,19 +60,34 @@ def ejecutar(funcion, *args, ok: str | None = None, recargar: bool = True, **kwa
     return resultado
 
 
-def mandar_avisos(pendientes: list[dict]) -> None:
-    """Manda los avisos por Telegram en segundo plano, para no demorar la pantalla."""
-    from .services import notificaciones
+def en_segundo_plano(funcion, *args) -> None:
+    """Corre `funcion(s, *args)` en otro hilo con su propia sesión (para mandar avisos sin demorar la pantalla)."""
     engine = get_engine()
 
     def tarea():
         try:
             with Session(engine) as s:
-                notificaciones.enviar_avisos(s, pendientes)
+                funcion(s, *args)
+                s.commit()  # por ejemplo, dispositivos dados de baja
         except Exception:  # un aviso que no sale nunca frena el trabajo
             pass
 
     threading.Thread(target=tarea, daemon=True).start()
+
+
+def mandar_avisos(pendientes: list[dict]) -> None:
+    from .services import notificaciones
+    en_segundo_plano(notificaciones.enviar_avisos, pendientes)
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def pagina_publicada(url: str) -> bool:
+    """¿Está publicada la página de activación de notificaciones (GitHub Pages)?"""
+    import requests
+    try:
+        return requests.get(url.rstrip("/") + "/sw.js", timeout=4).status_code == 200
+    except requests.RequestException:
+        return False
 
 
 def url_app() -> str:
