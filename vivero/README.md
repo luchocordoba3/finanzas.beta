@@ -52,13 +52,16 @@ Sin configurar nada, los datos se guardan en `vivero/vivero.db` (SQLite). Con lo
 4. **Proveedores**: completá teléfono, días de entrega y condiciones de pago.
 5. Una vez por semana, **Configuración → Copia de seguridad**.
 
-## Avisos por Telegram
+## Notificaciones
 
-Te llegan al celular el **resumen del día a las 8** (pedidos para entregar, pagos que vencen, stock bajo, recordatorios…) y **avisos en el momento**: pedido nuevo, encargo que llegó, producto que se agota y recordatorio que te dejó tu socio.
+Llegan como las de cualquier app, con el nombre y el ícono del vivero, aunque el sistema esté cerrado: **pedido nuevo, encargo que llegó, producto que se agota, recordatorio que te dejaron** y un **resumen a las 8 de la mañana**. Son gratis (Web Push: las entregan Google, Apple y Mozilla) y no hace falta ninguna app de terceros.
 
-1. **El bot** (una vez): en Telegram, **@BotFather** → `/newbot` → nombre → usuario terminado en `bot`. Te da un **token**: pegalo en **Configuración → Avisos por Telegram**.
-2. **Cada socio**, con su usuario: en esa misma pantalla, **Abrir el bot en Telegram** → **Iniciar** → volver y tocar **Ya toqué Iniciar**.
-3. **Resumen de las 8** (una vez): en GitHub, *Settings → Secrets and variables → Actions → New repository secret*, con nombre `DATABASE_URL` y la misma dirección de Neon. Lo manda `.github/workflows/vivero-resumen-diario.yml` (se puede correr a mano desde la pestaña *Actions*).
+1. **Publicar la página de activación** (una vez): en GitHub, *Settings → Pages → Deploy from a branch → main, carpeta /docs → Save*. La página vive en `docs/avisos/` (`https://luchocordoba3.github.io/finanzas.beta/avisos/`).
+2. **En cada celular o PC**: **Configuración → Notificaciones → Activar en este dispositivo → Activar notificaciones → Permitir**. En iPhone (iOS 16.4 o más), primero *Compartir → Agregar a inicio* y activar desde el ícono.
+3. **Resumen de las 8** (una vez): secreto `DATABASE_URL` en GitHub (*Settings → Secrets and variables → Actions*). Lo manda `.github/workflows/vivero-resumen-diario.yml`.
+
+Detalles técnicos: el cifrado (RFC 8291) y la firma VAPID (RFC 8292) están en `core/services/push.py`, hechos con `cryptography`. Las claves se generan solas y quedan en la base, fuera de la copia de seguridad. Los dispositivos dados de baja se borran solos.
+**Telegram** queda como canal opcional, en la misma pantalla.
 
 ## WhatsApp a clientes
 

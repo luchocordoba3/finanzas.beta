@@ -1,4 +1,4 @@
-"""Manda por Telegram el resumen del día a cada socio que conectó su Telegram.
+"""Manda el resumen del día a cada socio: notificación en sus dispositivos y/o Telegram.
 Lo corre GitHub Actions todos los días a las 8 (ver .github/workflows/vivero-resumen-diario.yml).
 Necesita la variable DATABASE_URL (secreto del repositorio en GitHub)."""
 import os
@@ -19,10 +19,9 @@ def main() -> None:
         print("Falta el secreto DATABASE_URL en GitHub: no se manda nada.")
         return
     with Session(crear_engine(url)) as s:
-        if not notificaciones.token(s):
-            print("Todavía no hay bot de Telegram configurado (Configuración → Avisos por Telegram).")
-            return
-        print(f"Resúmenes enviados: {notificaciones.enviar_resumen_diario(s)}")
+        enviados = notificaciones.enviar_resumen_diario(s)
+        s.commit()  # dispositivos dados de baja
+        print(f"Resúmenes enviados: {enviados}")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,7 @@
-"""Avisos por Telegram: conexión del bot, avisos al instante y resumen del día."""
+"""Envío de avisos: notificaciones propias del sistema (push) y Telegram (opcional).
+Incluye la conexión del bot de Telegram, los avisos al instante y el resumen del día."""
+import html
+import re
 import secrets
 from datetime import date
 
@@ -7,7 +10,7 @@ from sqlalchemy import select
 
 from ..models import Usuario
 from ..tiempo import DIAS, hoy
-from . import alertas, config
+from . import alertas, config, push
 from .avisos import e
 
 API = "https://api.telegram.org/bot{token}/{metodo}"
@@ -100,21 +103,36 @@ def conectados(s) -> dict[int, str]:
     return {uid: c for uid in usuarios if (c := chat(s, uid))}
 
 
+def texto_plano(texto: str) -> str:
+    """Saca el formato de Telegram para usar el texto en una notificación."""
+    return html.unescape(re.sub(r"<[^>]+>", "", texto))
+
+
+def activos(s) -> list[int]:
+    return list(s.scalars(select(Usuario.id).where(Usuario.activo.is_(True))))
+
+
 def enviar_avisos(s, avisos: list[dict]) -> int:
-    """Manda los avisos encolados. Un aviso que no sale nunca frena el trabajo: se ignora."""
-    token_bot = token(s)
-    if not token_bot or not avisos:
+    """Manda los avisos encolados por todos los canales que tenga cada usuario (notificaciones del
+    sistema y/o Telegram). Un aviso que no sale nunca frena el trabajo: se ignora."""
+    if not avisos:
         return 0
-    chats, enviados = conectados(s), 0
+    token_bot = token(s)
+    chats = conectados(s) if token_bot else {}
+    equipos = push.por_usuario(s)
+    titulo, usuarios, enviados = config.obtener(s, "nombre_vivero"), activos(s), 0
     for aviso in avisos:
-        for uid in aviso["para"] or list(chats):
-            if uid == aviso["excepto"] or uid not in chats:
+        for uid in aviso["para"] or usuarios:
+            if uid == aviso["excepto"]:
                 continue
-            try:
-                enviar(token_bot, chats[uid], aviso["texto"])
-                enviados += 1
-            except ErrorTelegram:
-                pass
+            if uid in chats:
+                try:
+                    enviar(token_bot, chats[uid], aviso["texto"])
+                    enviados += 1
+                except ErrorTelegram:
+                    pass
+            for d in equipos.get(uid, []):
+                enviados += push.enviar(s, d, titulo, texto_plano(aviso["texto"]))
     return enviados
 
 
@@ -143,19 +161,33 @@ def resumen(s, usuario_id: int, ref: date | None = None, por_grupo: int = 4) -> 
     return "\n".join(lineas)
 
 
+def resumen_corto(s, usuario_id: int, ref: date | None = None) -> tuple[str, str]:
+    """Título y texto para la notificación de la mañana (entra en la pantalla bloqueada)."""
+    cantidades: dict[str, int] = {}
+    for a in alertas.calcular(s, usuario_id, ref or hoy()):
+        cantidades[a.grupo] = cantidades.get(a.grupo, 0) + 1
+    titulo = f"Buen día, {s.get(Usuario, usuario_id).nombre} 🌱"
+    cuerpo = " · ".join(f"{alertas.ICONOS.get(g, '')} {g}: {n}" for g, n in cantidades.items())
+    return titulo, cuerpo or "Hoy no hay nada pendiente. ¡Buen día! 🌿"
+
+
 def enviar_resumen(s, usuario_id: int, ref: date | None = None) -> bool:
     enviar(token(s), chat(s, usuario_id), resumen(s, usuario_id, ref))
     return True
 
 
 def enviar_resumen_diario(s, ref: date | None = None) -> int:
-    if not token(s):
-        return 0
-    enviados = 0
-    for uid in conectados(s):
-        try:
-            enviar_resumen(s, uid, ref)
-            enviados += 1
-        except ErrorTelegram:
-            pass
+    """Resumen de la mañana por todos los canales de cada socio."""
+    chats = conectados(s) if token(s) else {}
+    equipos, enviados = push.por_usuario(s), 0
+    for uid in activos(s):
+        if uid in chats:
+            try:
+                enviar_resumen(s, uid, ref)
+                enviados += 1
+            except ErrorTelegram:
+                pass
+        if equipos.get(uid):
+            titulo, cuerpo = resumen_corto(s, uid, ref)
+            enviados += sum(push.enviar(s, d, titulo, cuerpo, etiqueta="resumen") for d in equipos[uid])
     return enviados

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Vivero</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icono-192.png">
+  <link rel="apple-touch-icon" href="icono-apple.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#2e7d32">
+  <style>
+    :root { --fondo: #f3f7f1; --tarjeta: #ffffff; --texto: #1b1f1a; --suave: #5b6457; --verde: #2e7d32; --borde: #dfe7db; }
+    @media (prefers-color-scheme: dark) {
+      :root { --fondo: #121611; --tarjeta: #1b2119; --texto: #eef3ec; --suave: #aab5a6; --verde: #66bb6a; --borde: #2c3529; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+           background: var(--fondo); color: var(--texto); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { width: 100%; max-width: 420px; background: var(--tarjeta); border: 1px solid var(--borde);
+           border-radius: 16px; padding: 28px 22px; text-align: center; }
+    img { width: 84px; height: 84px; border-radius: 20px; }
+    h1 { font-size: 1.5rem; margin: 12px 0 4px; }
+    p { color: var(--suave); margin: 8px 0 18px; }
+    button, a.boton { display: block; width: 100%; padding: 13px 16px; border-radius: 10px; font: inherit; font-weight: 600;
+                      text-decoration: none; cursor: pointer; margin-top: 10px; }
+    button { background: var(--verde); color: #fff; border: 0; }
+    button:disabled { opacity: .6; cursor: default; }
+    a.boton { border: 1px solid var(--borde); color: var(--texto); }
+    ol { text-align: left; color: var(--suave); padding-left: 22px; margin: 0 0 8px; }
+    .aviso { border-radius: 10px; padding: 10px 12px; background: color-mix(in srgb, var(--verde) 12%, transparent); color: var(--texto); }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="icono-192.png" alt="">
+    <h1 id="titulo">Vivero</h1>
+    <p id="mensaje">Recibí los avisos del vivero en este dispositivo, aunque el sistema esté cerrado.</p>
+    <ol id="iphone" hidden>
+      <li>Abrí esta página en <b>Safari</b>.</li>
+      <li>Tocá <b>Compartir</b> (el cuadrado con la flecha) y después <b>Agregar a inicio</b>.</li>
+      <li>Abrí la app <b>Vivero</b> desde el ícono nuevo y activá las notificaciones ahí.</li>
+    </ol>
+    <button id="activar" hidden>Activar notificaciones</button>
+    <a id="abrir" class="boton" hidden>Abrir el sistema</a>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    const guardado = JSON.parse(localStorage.getItem("vivero") || "{}");
+    const datos = { app: params.get("app") || guardado.app, k: params.get("k") || guardado.k, n: params.get("n") || guardado.n };
+    localStorage.setItem("vivero", JSON.stringify(datos));
+    if (datos.n) { $("titulo").textContent = datos.n; document.title = datos.n; }
+    if (datos.app) { $("abrir").href = datos.app; $("abrir").hidden = false; }
+
+    const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const instalada = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+    const soporta = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+    function mensaje(texto, destacado) { $("mensaje").textContent = texto; $("mensaje").className = destacado ? "aviso" : ""; }
+
+    function b64url(texto) {
+      return btoa(unescape(encodeURIComponent(texto))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+    function aBytes(b64) {
+      const s = atob((b64 + "=".repeat((4 - b64.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
+      return Uint8Array.from(s, (c) => c.charCodeAt(0));
+    }
+    function nombreDispositivo() {
+      const ua = navigator.userAgent;
+      const sistema = /Android/.test(ua) ? "Android" : esIOS ? "iPhone" : /Windows/.test(ua) ? "Windows" : /Mac/.test(ua) ? "Mac" : "Linux";
+      const nav = /Edg\//.test(ua) ? "Edge" : /SamsungBrowser/.test(ua) ? "Samsung Internet" : /Firefox/.test(ua) ? "Firefox"
+                : /Chrome\//.test(ua) ? "Chrome" : "Safari";
+      return sistema + " · " + nav;
+    }
+    function mismaClave(sub, clave) {
+      const actual = sub.options && sub.options.applicationServerKey;
+      if (!actual) return false;
+      const a = new Uint8Array(actual);
+      return a.length === clave.length && a.every((v, i) => v === clave[i]);
+    }
+
+    async function activar() {
+      $("activar").disabled = true;
+      mensaje("Activando…");
+      try {
+        const permiso = await Notification.requestPermission();
+        if (permiso !== "granted") {
+          mensaje("Las notificaciones quedaron bloqueadas. Habilitalas en la configuración del navegador " +
+                  "(el candado junto a la dirección → Notificaciones → Permitir) y volvé a tocar el botón.", true);
+          $("activar").disabled = false;
+          return;
+        }
+        const registro = await navigator.serviceWorker.register("sw.js");
+        await navigator.serviceWorker.ready;
+        const clave = aBytes(datos.k);
+        let sub = await registro.pushManager.getSubscription();
+        if (sub && !mismaClave(sub, clave)) { await sub.unsubscribe(); sub = null; }
+        if (!sub) sub = await registro.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: clave });
+        localStorage.setItem("vivero_activado", "1");
+        mensaje("¡Listo! Volviendo al sistema…", true);
+        const codigo = b64url(JSON.stringify({ sub: sub.toJSON(), nombre: nombreDispositivo() }));
+        location.href = datos.app.replace(/\/+$/, "") + "/?push=" + codigo;
+      } catch (e) {
+        mensaje("No se pudo activar (" + e.message + "). Probá de nuevo o usá otro navegador (Chrome, Edge o Safari).", true);
+        $("activar").disabled = false;
+      }
+    }
+
+    if (!datos.app || !datos.k) {
+      mensaje("Abrí esta página desde el sistema del vivero: Configuración → Notificaciones → Activar en este dispositivo.", true);
+    } else if (esIOS && !instalada) {
+      mensaje("En iPhone, primero instalá la app (lo pide Apple):");
+      $("iphone").hidden = false;
+    } else if (!soporta) {
+      mensaje("Este navegador no permite notificaciones. Probá con Chrome, Edge o Safari actualizados.", true);
+    } else if (Notification.permission === "granted" && localStorage.getItem("vivero_activado") && instalada && !location.hash) {
+      mensaje("Abriendo el sistema…");  // usada como ícono de la app: abre directo el sistema
+      setTimeout(() => { location.href = datos.app; }, 600);
+    } else {
+      $("activar").hidden = false;
+      $("activar").onclick = activar;
+      if (Notification.permission === "granted" && localStorage.getItem("vivero_activado")) {
+        mensaje("Las notificaciones ya están activas en este dispositivo. Si dejaron de llegar, tocá el botón de nuevo.", true);
+        $("activar").textContent = "Volver a activar";
+      }
+    }
+  </script>
+</body>
+</html>

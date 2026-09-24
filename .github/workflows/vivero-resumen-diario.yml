@@ -1,4 +1,4 @@
-name: "Vivero: resumen diario por Telegram"
+name: "Vivero: resumen diario"
 
 on:
   schedule:
@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Instalar dependencias
-        run: pip install pandas sqlalchemy "psycopg[binary]" python-dateutil tzdata requests
+        run: pip install pandas sqlalchemy "psycopg[binary]" python-dateutil tzdata requests cryptography
       - name: Mandar el resumen
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

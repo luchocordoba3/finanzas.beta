@@ -117,3 +117,16 @@ def test_vista_con_base_vacia(base_vacia, vista):
 def test_inicio_con_base_vacia(base_vacia):
     at = _app("../app.py").run()
     assert not at.exception, at.exception
+
+
+def test_vuelve_de_activar_notificaciones(base_vacia, monkeypatch):
+    from test_push import Respuesta, codigo_activacion
+    from core.services import push
+    monkeypatch.setattr(push.requests, "post", lambda *a, **k: Respuesta(201))  # la bienvenida no sale a internet
+    at = _app("../app.py")
+    at.query_params["push"] = codigo_activacion()
+    at.run()
+    assert not at.exception, at.exception
+    with Session(base_vacia) as s:
+        equipos = push.dispositivos(s)
+    assert len(equipos) == 1 and equipos[0].nombre == "Android · Chrome"

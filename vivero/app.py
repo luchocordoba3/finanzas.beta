@@ -4,7 +4,7 @@ import time
 import streamlit as st
 
 from core import auth, ui
-from core.services import config
+from core.services import config, push
 
 st.set_page_config(page_title="Vivero", page_icon="🌱", layout="wide")
 
@@ -12,6 +12,11 @@ problema = ui.problema_base()
 if problema:
     ui.pantalla_problema_base(*problema)
     st.stop()
+
+# La página de activación de notificaciones vuelve con ?push=…: se guarda hasta que el usuario ingrese.
+if "push" in st.query_params:
+    st.session_state["_push_pendiente"] = st.query_params["push"]
+    del st.query_params["push"]
 
 
 def _entrar(u) -> None:
@@ -58,6 +63,11 @@ if not ui.usuario():
     st.stop()
 
 usuario = ui.usuario()
+if st.session_state.get("_push_pendiente"):
+    dispositivo = ui.ejecutar(push.registrar, usuario["id"], st.session_state.pop("_push_pendiente"), recargar=False)
+    if dispositivo:
+        ui.flash("Notificaciones activadas en este dispositivo", "🔔")
+        ui.en_segundo_plano(push.enviar_bienvenida, dispositivo.id)
 with ui.sesion() as s:
     cfg = config.todos(s)
 n_alertas = ui.contar_alertas(usuario["id"])
