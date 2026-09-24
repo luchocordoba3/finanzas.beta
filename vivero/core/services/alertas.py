@@ -10,6 +10,10 @@ from ..tiempo import hoy
 from . import clientes, compras, config, pedidos, recordatorios, stock
 
 NIVELES = {"urgente": 0, "atencion": 1, "info": 2}
+ICONOS = {"Pedidos atrasados": "🔴", "Pedidos para entregar": "📦", "Faltantes para pedidos": "🧩",
+          "Encargos que llegaron": "📬", "Stock bajo mínimo": "📉", "Compras por recibir": "🚚",
+          "Pagos a proveedores": "💸", "Cuentas corrientes": "💳", "Recordatorios": "⏰", "Producción": "🌾",
+          "Temporada": "🌸"}
 
 
 @dataclass

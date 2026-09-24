@@ -7,6 +7,7 @@ from sqlalchemy.orm import aliased
 
 from ..models import Recordatorio, Usuario
 from ..tiempo import ahora, hoy
+from . import avisos
 from .util import df_query
 
 PASOS = {"semanal": relativedelta(weeks=1), "mensual": relativedelta(months=1)}
@@ -20,6 +21,10 @@ def crear(s, titulo: str, fecha: date, creado_por: int | None = None, asignado_a
                      repeticion=repeticion, descripcion=descripcion.strip())
     s.add(r)
     s.flush()
+    if asignado_a and asignado_a != creado_por:
+        quien = s.get(Usuario, creado_por).nombre if creado_por else "Alguien"
+        avisos.encolar(s, f"⏰ {avisos.e(quien)} te dejó un recordatorio para el {fecha:%d/%m}: "
+                          f"<b>{avisos.e(r.titulo)}</b>", para=[asignado_a])
     return r
 
 

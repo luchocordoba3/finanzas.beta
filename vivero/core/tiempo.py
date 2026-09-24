@@ -3,6 +3,7 @@ from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 TZ = ZoneInfo("America/Argentina/Buenos_Aires")
+DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
 
 def ahora() -> datetime:

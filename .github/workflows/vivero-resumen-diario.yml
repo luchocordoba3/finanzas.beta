@@ -1,0 +1,32 @@
+name: "Vivero: resumen diario por Telegram"
+
+on:
+  schedule:
+    - cron: "0 11 * * *"  # 8:00 de Argentina (11:00 UTC). GitHub puede demorarlo unos minutos.
+  workflow_dispatch:  # para mandarlo a mano desde la pestaña Actions
+
+permissions:
+  contents: read
+  actions: write  # para el paso que mantiene activa la tarea
+
+jobs:
+  resumen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: pip install pandas sqlalchemy "psycopg[binary]" python-dateutil tzdata requests
+      - name: Mandar el resumen
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python vivero/resumen_diario.py
+      # GitHub pausa las tareas programadas de un repo público tras 60 días sin cambios; esto la mantiene activa.
+      - name: Mantener activa la tarea programada
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/vivero-resumen-diario.yml/enable"

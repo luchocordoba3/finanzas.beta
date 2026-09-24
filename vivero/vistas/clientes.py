@@ -3,7 +3,7 @@ import streamlit as st
 from core import ui
 from core.constantes import ESTADOS_PEDIDO, TIPOS_CLIENTE
 from core.models import Cliente
-from core.services import clientes, config, importar, pedidos, ventas
+from core.services import clientes, config, importar, pedidos, ventas, whatsapp
 
 st.title("👥 Clientes")
 
@@ -37,9 +37,15 @@ def ficha(cliente_id: int) -> None:
         cobros = clientes.cobros(s, cliente_id)
         peds = pedidos.tabla(s, cliente_id=cliente_id)
         medios = [m for m in config.medios_pago(s) if m != "Cuenta corriente"]
+        cfg = config.todos(s)
     confirmadas = historial[historial["estado"] == "confirmada"]
     st.subheader(f"{datos['nombre']}")
     st.caption(" · ".join(x for x in (datos["tipo"], datos["telefono"], datos["email"], datos["localidad"]) if x))
+    texto = whatsapp.mensaje("saldo" if saldo > 0 else "hola", whatsapp.saludo(datos["nombre"], datos["tipo"]),
+                             cfg["nombre_vivero"], saldo=saldo)
+    url = whatsapp.link(datos["telefono"], texto, cfg["codigo_area"])
+    if url:
+        st.link_button("Escribirle por WhatsApp" + (" (recordarle el saldo)" if saldo > 0 else ""), url, icon="💬")
     m = st.columns(4)
     m[0].metric("Total comprado", ui.pesos(confirmadas["total"].sum()), border=True)
     m[1].metric("Compras", len(confirmadas), border=True)

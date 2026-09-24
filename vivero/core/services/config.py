@@ -10,6 +10,7 @@ DEFAULTS = {
     "dias_deuda": "30",
     "dias_sin_venta": "60",
     "modulo_produccion": "0",
+    "codigo_area": "11",
     "medios_pago": "Efectivo, Transferencia, Mercado Pago, Débito, Crédito, Cuenta corriente",
 }
 

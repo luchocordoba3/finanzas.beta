@@ -79,9 +79,9 @@ def deudores(s, referencia: date | None = None) -> pd.DataFrame:
                 break
         c = s.get(Cliente, cid)
         desde = desde.date() if desde else referencia
-        filas.append({"cliente_id": cid, "cliente": c.nombre, "telefono": c.telefono, "saldo": deuda,
+        filas.append({"cliente_id": cid, "cliente": c.nombre, "telefono": c.telefono, "tipo": c.tipo, "saldo": deuda,
                       "desde": desde, "dias": (referencia - desde).days})
-    return pd.DataFrame(filas, columns=["cliente_id", "cliente", "telefono", "saldo", "desde", "dias"])
+    return pd.DataFrame(filas, columns=["cliente_id", "cliente", "telefono", "tipo", "saldo", "desde", "dias"])
 
 
 def registrar_cobro(s, cliente_id: int, monto: float, medio_pago: str, usuario_id: int | None = None,

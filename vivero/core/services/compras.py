@@ -4,9 +4,9 @@ from datetime import date, datetime
 import pandas as pd
 from sqlalchemy import select
 
-from ..models import Compra, CompraItem, Producto, Proveedor
+from ..models import Compra, CompraItem, PedidoItem, Producto, Proveedor
 from ..tiempo import hoy
-from . import stock
+from . import avisos, stock
 from .util import df_query, nombre_producto
 
 ABIERTAS = ("lista", "pedida", "parcial")
@@ -114,7 +114,7 @@ def recibir(s, compra_id: int, recepciones: dict[int, tuple[float, float]], usua
     c = s.get(Compra, compra_id)
     if c.estado not in ABIERTAS:
         raise ValueError("Esta compra ya está cerrada.")
-    recibido = 0.0
+    recibido, encargos = 0.0, {}
     for it in c.items:
         cantidad, costo = recepciones.get(it.id, (0, it.costo_unitario))
         if cantidad < 0 or costo < 0:
@@ -125,8 +125,14 @@ def recibir(s, compra_id: int, recepciones: dict[int, tuple[float, float]], usua
         stock.mover(s, it.producto_id, cantidad, "compra", usuario_id, costo_unitario=costo,
                     ref_tipo="compra", ref_id=c.id, fecha=fecha)
         recibido += cantidad
+        if it.pedido_item_id:
+            item_pedido = s.get(PedidoItem, it.pedido_item_id)
+            encargos.setdefault(item_pedido.pedido, []).append(item_pedido.descripcion)
     if not recibido:
         raise ValueError("No cargaste ninguna cantidad recibida.")
+    for pedido, cosas in encargos.items():
+        avisos.encolar(s, f"📬 Llegó lo encargado para el pedido #{pedido.id} de <b>{avisos.e(pedido.cliente.nombre)}</b>: "
+                          f"{avisos.e(', '.join(cosas))}. Avisale y marcalo como listo.")
     c.estado = "recibida" if all(i.cantidad_recibida >= i.cantidad for i in c.items) else "parcial"
     c.fecha_recepcion = fecha.date() if fecha else hoy()
     c.fecha_pedido = c.fecha_pedido or c.fecha_recepcion
